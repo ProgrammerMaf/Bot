@@ -1,0 +1,19 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Example
+{
+    public class Ceil
+    {
+        public readonly List<Ceil> IncidentNodes = new List<Ceil>();
+        public readonly int X;
+        public readonly int Y;
+    }
+    public class Labyrinth
+    {
+        public readonly List<Ceil> Nodes = new List<Ceil>();
+    }
+}
