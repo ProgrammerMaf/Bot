@@ -1,0 +1,192 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Example
+{
+    public class QueueItem<T>
+    {
+        public T Item;
+        public QueueItem<T> Next;
+    }
+    public class Queue<T>
+    {
+        //отдельный класс нужен для очереди:
+        //сделав всего несколько манипуляций мы сможем превратить её в стек,
+        //и таким образом сделать обход в глубину
+        //на самом деле, это понадобится тогда, когда мы захотим искать путь во взвешенном графе
+        //т.е. в таком, где проход по ребру имеет стоимость (например длину переезда от вершины в вершину)
+        public QueueItem<T> Head { get; set; }
+        public QueueItem<T> Tail { get; set; }
+        public bool IsEmpty
+        {
+            get
+            {
+                return Head == null;
+            }
+        }
+        public Queue ()
+        {
+            Head = null;
+            Tail = null;
+        }
+        public void Push(T item)
+        {
+            var newItem = new QueueItem<T>()
+            {
+                Item = item
+            };
+            if (Tail !=null)
+                Tail.Next = newItem;
+            Tail = newItem;
+            if (Head == null)
+            {
+                Head = Tail;
+            }
+        }
+        public T Pop()
+        {
+            if (this.IsEmpty)
+                throw new Exception("Cannot pop from emty queue");
+            var result = Head.Item;
+            this.Head = this.Head.Next;
+            return result;
+        }
+        
+    }
+    public class LabyrinthCoordinates
+    {
+        public readonly int X;
+        public readonly int Y;
+        public LabyrinthCoordinates()
+        {
+            X = 0;
+            Y = 0;
+        }
+        public LabyrinthCoordinates(int x, int y)
+        {
+            X = x;
+            Y = y;
+        }
+        public override bool Equals(object obj)
+        {
+ 	        if (!(obj is LabyrinthCoordinates))
+                return false;
+            var otherCoordinates = obj as LabyrinthCoordinates;
+            return this.X == otherCoordinates.X && this.Y == otherCoordinates.Y;
+        }
+        public override int GetHashCode()
+        {
+ 	         return X*31+Y*17;
+        }
+    }
+    public class LabyrinthCeil
+    {
+        public LabyrinthCoordinates Coordinates;
+        public List<LabyrinthCeil> IncidentNodes;
+        public LabyrinthCeil(LabyrinthCoordinates coordinates)
+        {
+            Coordinates = coordinates;
+            IncidentNodes = new List<LabyrinthCeil>();
+        }
+        public IEnumerable<LabyrinthCeil> GetIncidentNodes()
+        {
+            foreach (var node in IncidentNodes)
+                yield return node;
+        }
+        //протестить:
+        //берём лист, создаем объект LabyrinthCeil
+        //потом меняем лист
+        //изменится ли при этом readlonly поле?
+        //пока будем считать, что нет
+    }
+    public class Labyrinth
+    {
+        //Проблема - индексация по координатам понадобится:
+        //все объекты, напарник, детальки - имеют координаты
+        //на будущее - не забудем, что напарник-бот может стырить детальку, и тогда расстояние до неё считать не надо - 
+        //ато ещё побежим за ним
+        public Dictionary<LabyrinthCoordinates,LabyrinthCeil> Nodes;
+        public Labyrinth()
+        {
+            Nodes = new Dictionary<LabyrinthCoordinates, LabyrinthCeil>();
+        }
+        public void AddEdge(LabyrinthCoordinates first, LabyrinthCoordinates second)
+        {
+            LabyrinthCeil firstNode;
+            if (Nodes.ContainsKey(first))
+                firstNode = Nodes[first];
+            else
+            {
+                firstNode = new LabyrinthCeil(first);
+                Nodes[first] = firstNode;
+            }
+            LabyrinthCeil secondNode;
+            if (Nodes.ContainsKey(second))
+                secondNode = Nodes[second];
+            else
+            {
+                secondNode = new LabyrinthCeil(second);
+                Nodes[second] = secondNode;
+            }
+            firstNode.IncidentNodes.Add(secondNode);
+            secondNode.IncidentNodes.Add(firstNode);
+        }
+    }
+
+    public class Node
+    {
+        public int ShortestPathLength { get; set; }
+        public bool IsUsed { get; set; }
+        public LabyrinthCeil Ceil;
+        public Node LastVisited;
+    }
+    public class PathFinder
+    {
+        const int infinity = 1000000000;
+        public List<LabyrinthCoordinates> FindShortestWay(
+            Labyrinth labyrinth, LabyrinthCoordinates from, LabyrinthCoordinates to)
+        {
+            var nodesQueue = new Queue<Node>();
+            var nodes = labyrinth.Nodes
+                .ToDictionary(item => item.Key, item => new Node
+                    {
+                        Ceil = item.Value,
+                        IsUsed = false,
+                        ShortestPathLength = infinity,
+                        LastVisited = null
+                    });
+            nodesQueue.Push(nodes[from]);
+            nodes[from].IsUsed = true;
+            nodes[from].ShortestPathLength = 0;
+            nodes[from].LastVisited = null;
+            while (!nodes[to].IsUsed && !nodesQueue.IsEmpty)
+            {
+                var currentNode = nodesQueue.Pop();
+                foreach (var incident in currentNode.Ceil.GetIncidentNodes())
+                {
+                    var currentIncidentNode = nodes[incident.Coordinates];
+                    if (!currentIncidentNode.IsUsed)
+                    {
+                        nodesQueue.Push(currentIncidentNode);
+                        currentIncidentNode.ShortestPathLength = currentNode.ShortestPathLength + 1;
+                        currentIncidentNode.IsUsed = true;
+                        currentIncidentNode.LastVisited = currentNode;
+                    }
+                }
+            }
+            //случай, когда из from нельзя попасть в to пока не рассмотрен
+            var current = nodes[to];
+            var result = new List<LabyrinthCoordinates>();
+            while (current != null)
+            {
+                result.Add(current.Ceil.Coordinates);
+                current = current.LastVisited;
+            }
+            result.Reverse();
+            return result;
+        }
+    }
+}
