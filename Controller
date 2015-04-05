@@ -1,0 +1,16 @@
+public class WayController
+    {
+        public readonly Labyrinth labyrinth;
+        public WayController(Labyrinth labyrinth)
+        {
+            this.labyrinth = labyrinth;
+        }
+        public IEnumerable<LabyrinthCoordinates> GetPath(LabyrinthCoordinates botPosition, List<LabyrinthCoordinates> brokenDetails)
+        {
+            var targetDetail = brokenDetails[0];
+            var finder = new PathFinder();
+            var botWay = finder.FindShortestWay(this.labyrinth, botPosition, targetDetail);
+            foreach (var step in botWay)
+                yield return step;
+        }
+    }
