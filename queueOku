@@ -1,0 +1,44 @@
+public class Queue<T>
+    {
+        //отдельный класс нужен для очереди:
+        //сделав всего несколько манипуляций мы сможем превратить её в стек,
+        //и таким образом сделать обход в глубину
+        //на самом деле, это понадобится тогда, когда мы захотим искать путь во взвешенном графе
+        //т.е. в таком, где проход по ребру имеет стоимость (например длину переезда от вершины в вершину)
+        public QueueItem<T> Head { get; set; }
+        public QueueItem<T> Tail { get; set; }
+        public bool IsEmpty
+        {
+            get
+            {
+                return Head == null;
+            }
+        }
+        public Queue ()
+        {
+            Head = null;
+            Tail = null;
+        }
+        public void Push(T item)
+        {
+
+            if (IsEmpty)
+                Tail = Head = new QueueItem<T> { Item = item, Next = null };
+            else
+            {
+                var newItem = new QueueItem<T> { Item = item, Next = null };
+                Tail.Next = newItem;
+                Tail = newItem;
+            }
+        }
+        public T Pop()
+        {
+            if (this.IsEmpty) throw new InvalidOperationException();
+            var result = Head.Item;
+            Head = Head.Next;
+            if (Head == null)
+                Tail = null;
+            return result;
+        }
+        
+    }
